@@ -4,4 +4,5 @@
 [Rr]elease/
 [Bb]in/
 [Oo]bj/
-/src/secrets.json
+.vs/
+/src/console/AppSecrets.json
