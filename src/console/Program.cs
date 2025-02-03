@@ -13,9 +13,9 @@ var request = new ChatCompletionRequest(
     new List<ChatMessage>()
 {
     new ChatMessage(ChatMessage.RoleEnum.System,
-        "You are profession claims assessor."),
+        "You are a professional cricket umpire who values brevity."),
     new ChatMessage(ChatMessage.RoleEnum.User,
-        "Write me a short introduction on how to assess a claim.")
+        "What are three ways a batsman can be dismissed?")
 },
     //optional - defaults to false
     safePrompt: true,
