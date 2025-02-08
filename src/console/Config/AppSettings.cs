@@ -11,6 +11,8 @@ namespace Mistral.Config
     {
         private readonly IConfigurationSection _appSettings;
         private readonly IConfigurationRoot _appSecrets;
+        
+        private static string _basePath = AppDomain.CurrentDomain.BaseDirectory;
 
         private AppSettings(IConfigurationSection? appSettings, IConfigurationRoot? appSecrets)
         {
@@ -30,18 +32,18 @@ namespace Mistral.Config
 
         public string MistralApiKey => this._appSecrets["MistralApiKey"]!;
 
+        public string CricketLawChangeProposalDocumentPath => Path.Combine(_basePath, "cricket_law_change_proposals.txt");
+
         public static AppSettings Load()
         {
-            string basePath = AppDomain.CurrentDomain.BaseDirectory;
-
             var appConfig = new ConfigurationBuilder()
-                .SetBasePath(basePath)
+                .SetBasePath(_basePath)
                 .AddJsonFile("AppSettings.json")
                 .Build()
                 .GetRequiredSection("AppSettings");
 
             var appSecrets = new ConfigurationBuilder()
-                .SetBasePath(basePath)
+                .SetBasePath(_basePath)
                 .AddJsonFile("AppSecrets.json")
                 .Build();
 
