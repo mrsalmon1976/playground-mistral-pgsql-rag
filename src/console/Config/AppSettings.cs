@@ -10,25 +10,35 @@ namespace Mistral.Config
     internal class AppSettings
     {
         private readonly IConfigurationSection _appSettings;
+        private readonly IConfigurationSection _connectionStrings;
         private readonly IConfigurationRoot _appSecrets;
         
         private static string _basePath = AppDomain.CurrentDomain.BaseDirectory;
 
-        private AppSettings(IConfigurationSection? appSettings, IConfigurationRoot? appSecrets)
+        private AppSettings(IConfigurationRoot? appSettingsRoot, IConfigurationRoot? appSecretsRoot)
         {
-            if (appSettings == null) 
+            _appSettings = appSettingsRoot!.GetRequiredSection("AppSettings");
+            if (_appSettings == null) 
             {
                 throw new InvalidOperationException("AppSettings file not loaded");
             }
-            if (appSecrets == null)
+
+            if (appSecretsRoot == null)
             {
                 throw new InvalidOperationException("AppSecrets file not loaded");
             }
-            this._appSettings = appSettings;
-            this._appSecrets = appSecrets;
+
+            this._appSecrets = appSecretsRoot;
+            this._connectionStrings = appSecretsRoot!.GetRequiredSection("ConnectionStrings");
+            if (_connectionStrings == null)
+            {
+                throw new InvalidOperationException("ConnectionStrings section not declared in appSecrets");
+            }
         }
 
-        public string TestKey  => this._appSettings["TestKey"]!;
+
+
+        public string DefaultConnectionString  => this._connectionStrings["Default"]!;
 
         public string MistralApiKey => this._appSecrets["MistralApiKey"]!;
 
@@ -39,8 +49,7 @@ namespace Mistral.Config
             var appConfig = new ConfigurationBuilder()
                 .SetBasePath(_basePath)
                 .AddJsonFile("AppSettings.json")
-                .Build()
-                .GetRequiredSection("AppSettings");
+                .Build();
 
             var appSecrets = new ConfigurationBuilder()
                 .SetBasePath(_basePath)

@@ -7,6 +7,7 @@ Technologies used:
   - I used the [ankane/pgvector](https://hub.docker.com/r/ankane/pgvector) image for this proof of concept
   - Consider [Supabase](https://supabase.com/) if you don't want to run your own database
 - [Ubuntu-22.04](https://ubuntu.com/download) running on WSL2
+- [Dapper](https://github.com/DapperLib/Dapper)
 
 # Connecting to the Mistral API
 

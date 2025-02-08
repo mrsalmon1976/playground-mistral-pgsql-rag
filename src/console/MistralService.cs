@@ -40,7 +40,7 @@ namespace Mistral
             }
         }
 
-        public async Task<IEnumerable<EmbeddingDocument>> CreateEmbeddings(List<string> input)
+        internal async Task<IEnumerable<EmbeddingDocument>> CreateEmbeddings(List<string> input)
         {
             var client = new MistralClient(_appSettings.MistralApiKey);
             var request = new EmbeddingRequest(ModelDefinitions.MistralEmbed, input);

@@ -1,9 +1,11 @@
 ﻿
 using Mistral;
 using Mistral.Config;
+using Mistral.Data;
 
 AppSettings appSettings = AppSettings.Load();
 
+using IDbContext dbContext = new DbContext(appSettings.DefaultConnectionString);
 DocumentService documentService = new DocumentService(appSettings);
 MistralService mistralService = new MistralService(appSettings);
 
