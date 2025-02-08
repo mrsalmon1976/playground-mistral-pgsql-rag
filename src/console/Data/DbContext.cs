@@ -7,6 +7,8 @@ namespace Mistral.Data
     public interface IDbContext : IDisposable
     {
 
+        IDbConnection DbConnection { get; }
+
         /// <summary>
         /// Gets the transaction created with BeginTransaction.
         /// </summary>
@@ -161,9 +163,14 @@ namespace Mistral.Data
         {
             this.Id = Guid.NewGuid();
             _connString = connectionString;
-            _conn = new NpgsqlConnection(_connString);
-            _conn.Open();
+
+            var builder = new NpgsqlDataSourceBuilder(connectionString);
+            builder.UseVector();
+            var dataSource = builder.Build();
+            _conn = dataSource.OpenConnection();
         }
+
+        public IDbConnection DbConnection => _conn;
 
         /// <summary>
         /// Gets the transaction created with BeginTransaction.

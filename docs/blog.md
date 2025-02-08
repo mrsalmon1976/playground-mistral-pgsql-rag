@@ -8,6 +8,7 @@ Technologies used:
   - Consider [Supabase](https://supabase.com/) if you don't want to run your own database
 - [Ubuntu-22.04](https://ubuntu.com/download) running on WSL2
 - [Dapper](https://github.com/DapperLib/Dapper)
+- [PgVector](https://github.com/pgvector/pgvector-dotnet) and Pgvector.Dapper - provides .NET support for working with vectors with PostgreSQL
 
 # Connecting to the Mistral API
 
@@ -151,4 +152,77 @@ internal class EmbeddingDocument
     public List<decimal> Embedding { get; set; } = new List<decimal>();
 }
 ```
+
+## Storing the Embeddings in PosgreSQL
+
+We want to store our vectors in a database, so we can query for similarities and add relevant embeddings to our context. 
+
+First, create a table to store the embeddings.
+
+```sql
+CREATE TABLE embeddings (
+	id bigserial primary key,
+	document_id text,           -- used to group embeddings
+	content text,               -- text content of the embedding
+	embedding vector(1024)      -- the dimension of our embedding
+);
+```
+
+Note that the `document_id` should really be a foreign key, but for purposes of the example is just a text identifier that we will hard-code.
+
+I am using Dapper for my queries, so I need to
+
+1. Add PgVector to my solution
+2. Add PgVector.Dapper to my solution
+3. Ensure the Vector type is loaded for Dapper:
+    ```csharp
+    SqlMapper.AddTypeHandler(new VectorTypeHandler());
+    ```
+4. Create a model that maps to my database table
+   ```csharp
+   internal class DbEmbedding
+    {
+        public string DocumentId { get; set; } = String.Empty;
+
+        public string Content { get; set; } = String.Empty;
+
+        public Vector Embedding { get; set; } = new Vector(new float[] { 1, 1, 1 });
+    }
+    ```
+5. Create a mapper to map models with different properties
+   ```csharp
+   public DbEmbedding ConvertEmbeddingDocumentToDbEmbedding(EmbeddingDocument embeddingDocument)
+    {
+        float[] embedding = embeddingDocument.Embedding.Select(d => (float)d).ToArray();
+
+        return new DbEmbedding()
+        {
+            DocumentId = embeddingDocument.Index.ToString(),
+            Content = embeddingDocument.Content,
+            Embedding = new Vector(embedding)
+        };
+    }
+    ```
+6. Write an insert method for persisting the embeddings:
+   ```csharp
+    public async Task SaveEmbeddings(string documentId, IEnumerable<DbEmbedding> embeddings)
+    {
+        string sql = @$"INSERT INTO embeddings 
+            (document_id, content, embedding) 
+            VALUES 
+            ('{documentId}', @Content, @Embedding)";
+        await _dbContext.DbConnection.ExecuteAsync(sql, embeddings);
+    }
+    ```
+7. Execute!
+   ```csharp
+       var embeddings = embeddingDocuments.Select(x => modelMapper.ConvertEmbeddingDocumentToDbEmbedding(x));
+    await embeddingsRepo.SaveEmbeddings("CRICKET_LAW_CHANGE_PROPOSAL", embeddings);
+    ```
+
+If you look in your `embeddings` table, you should now see multiple records for your document - my law change proposal document generated 6 rows in the database.
+
+
+
+
 
