@@ -5,6 +5,8 @@ namespace Mistral.Models
 {
     internal class DbEmbedding
     {
+        public long Id { get; set; }
+
         public string DocumentId { get; set; } = String.Empty;
 
         public string Content { get; set; } = String.Empty;

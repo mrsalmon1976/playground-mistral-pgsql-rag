@@ -9,6 +9,7 @@ Technologies used:
 - [Ubuntu-22.04](https://ubuntu.com/download) running on WSL2
 - [Dapper](https://github.com/DapperLib/Dapper)
 - [PgVector](https://github.com/pgvector/pgvector-dotnet) and Pgvector.Dapper - provides .NET support for working with vectors with PostgreSQL
+- A book called [Cricket](https://www.gutenberg.org/ebooks/67430) from Project Gutenberg at https://www.gutenberg.org/ebooks/67430
 
 # Connecting to the Mistral API
 
@@ -63,6 +64,10 @@ await foreach (var chunk in streamedResponse)
 # LLM Overview
 
 TODO: Give a brief overview of how an LLM works
+
+# Utility Functions
+
+TODO: add utility functions for some context - mostly EmbeddingUtils?
 
 # Retrieval-Augmented Generation (RAG)
 
@@ -221,6 +226,31 @@ I am using Dapper for my queries, so I need to
     ```
 
 If you look in your `embeddings` table, you should now see multiple records for your document - my law change proposal document generated 6 rows in the database.
+
+## Building Context
+
+Now that we have our document stored as embeddings, we want to include it in our chat as context, which can be done as follows:
+
+```csharp
+public async Task<IEnumerable<DbEmbedding>> GetNearestNeighbours(Vector vector, int limit = 5)
+{
+    return await _dbContext.DbConnection.QueryAsync<DbEmbedding>("SELECT * FROM embeddings ORDER BY embedding <-> @Vector LIMIT @Limit", new { Vector = vector, Limit = limit });
+}
+```
+
+In the above, we query for embeddings based on another embedding - and that embedding is the user question.  This is built up as follows:
+
+```csharp
+var question = "How many more balls per over than before are in the new proposed laws?";
+var questionEmbedding = (await mistralService.CreateEmbeddings(new List<string> { question })).First();
+var questionVector = EmbeddingUtils.ConvertToVector(questionEmbedding.Embedding);
+var context = await embeddingsRepo.GetNearestNeighbours(questionVector, 10);
+```
+
+The above code turns the text into an embedding (same as before), then we convert the resultant embedding into a vector, and search for anything in the database that is similar (with a limit to prevent the context getting too big).
+
+
+
 
 
 

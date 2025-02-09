@@ -42,7 +42,9 @@ namespace Mistral.Config
 
         public string MistralApiKey => this._appSecrets["MistralApiKey"]!;
 
-        public string CricketLawChangeProposalDocumentPath => Path.Combine(_basePath, "cricket_law_change_proposals.txt");
+        public string CricketLawChangeProposalDocumentPath => Path.Combine(_basePath, "Resources", "cricket_law_change_proposals.txt");
+
+        public string CricketBookPath => Path.Combine(_basePath, "Resources", "cricket.txt");
 
         public static AppSettings Load()
         {

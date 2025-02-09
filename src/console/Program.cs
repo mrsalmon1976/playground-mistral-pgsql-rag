@@ -1,47 +1,35 @@
-﻿
-using Dapper;
-using Mistral;
-using Mistral.Config;
-using Mistral.Data;
-using Mistral.Models;
-using Mistral.Repositories;
-using Pgvector.Dapper;
+﻿using Mistral.Config;
+using Mistral.Examples;
+using Mistral.Utils;
 
-const string CrickLawChangeProposalDocumentId = "CRICKET_LAW_CHANGE_PROPOSAL";
-
-SqlMapper.AddTypeHandler(new VectorTypeHandler());
 AppSettings appSettings = AppSettings.Load();
 
-using IDbContext dbContext = new DbContext(appSettings.DefaultConnectionString);
-DocumentService documentService = new DocumentService(appSettings);
-MistralService mistralService = new MistralService(appSettings);
-EmbeddingsRepository embeddingsRepo = new EmbeddingsRepository(dbContext);
-var modelMapper = new ModelMapper();
+Console.WriteLine();
+Console.WriteLine("Which example would you like to run?");
+Console.WriteLine("\t[1] Embeddings: Local vector similarity search");
+Console.WriteLine("\t[2] Chat context: Chat about new cricket law proposals");
+Console.WriteLine("\t[3] Function execution: Ask an agent whether you are eligible for insurance cover based on custom rules");
+Console.WriteLine();
+ConsoleUtils.WriteLine("You can quit at any point by typing 'exit'.", ConsoleColor.Yellow);
+Console.WriteLine();
 
-// split the documents into chunks
-var splitDocuments = documentService.SplitDocument();
-Console.WriteLine(splitDocuments.Count);
-for (var i = 0; i < splitDocuments.Count; i++)
+string? exampleType = Console.ReadLine();
+
+switch (exampleType)
 {
-    Console.WriteLine($"Document {i}: {splitDocuments[i]}");
-    Console.WriteLine("-------------------------------------------------------");
+    case "1":
+        await LocalVectorSearch.Run(appSettings);
+        break;
+    case "2":
+        await CricketLawChangeChat.Run(appSettings);
+        break;
+    case "3":
+        await ExecuteFunction.Run(appSettings);
+        break;
+    default:
+        ConsoleUtils.WriteLine("Invalid selection", ConsoleColor.White, ConsoleColor.Red);
+        break;
 }
 
-// get the embeddings for each chunk if we haven't stored them already
-bool isDocumentPersisted = await embeddingsRepo.GetDocumentCount(CrickLawChangeProposalDocumentId) > 0;
-if (!isDocumentPersisted)
-{
-    var embeddingDocuments = await mistralService.CreateEmbeddings(splitDocuments);
-
-    // save the embeddings to the database
-    var embeddings = embeddingDocuments.Select(x => modelMapper.ConvertEmbeddingDocumentToDbEmbedding(x));
-    await embeddingsRepo.SaveEmbeddings(CrickLawChangeProposalDocumentId, embeddings);
-}
-// await mistralService.Chat();
-
-
+Console.WriteLine("Press enter to exit");
 Console.ReadLine();
-
-
-
-
