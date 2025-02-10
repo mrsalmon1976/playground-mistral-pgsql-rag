@@ -90,6 +90,8 @@ namespace Mistral.Examples
 
                 messages.Add(response.Choices.First().Message);
 
+                // note how we have not hard-coded a tool to be called - the response contains data telling us that we should
+                // execute the tool
                 foreach (var toolCall in response.ToolCalls)
                 {
                     var resp = await toolCall.InvokeAsync<string>();
