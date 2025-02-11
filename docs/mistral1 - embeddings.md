@@ -36,17 +36,49 @@ We want to store our vectors in a database, so we can query for similarities and
 
 Make sure you have an accessible instance of PostgreSQL running, and set up with your name/password.  You will also need to ensure that the `pgvector` extension is installed on your database.
 
+My docker file is as follows:
+
+```docker
+version: '3.8'
+
+services:
+  postgres:
+    image: ankane/pgvector
+    container_name: postgres_vector
+    environment:
+      POSTGRES_USER: youruser
+      POSTGRES_PASSWORD: yourpassword
+      POSTGRES_DB: postgresql
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+```
+
+From powershell, run `docker-compose up -d`.
+
+Once connected to the database (using [pgAdmin 4](https://www.pgadmin.org/download/)), I created a `mistral` user.
+
 First, create a table to store the embeddings.
 
 ```sql
+GRANT CONNECT ON DATABASE mistralvector TO mistral;
+GRANT CREATE ON DATABASE mistralvector TO mistral;
+
+GRANT USAGE ON SCHEMA public TO mistral;
+GRANT CREATE ON SCHEMA public TO mistral;
+
+CREATE EXTENSION vector;        -- enables the vector extension on your database
+
 CREATE TABLE embeddings (
 	id bigserial primary key,
 	document_id text,           -- used to group embeddings
 	content text,               -- text content of the embedding
 	embedding vector(1024)      -- the dimension of our embedding
 );
-
-CREATE EXTENSION vector;        -- enables the vector extension on your database
 ```
 
 Note that the `document_id` should really be a foreign key, but for purposes of the example it is just a text identifier that we will hard-code.

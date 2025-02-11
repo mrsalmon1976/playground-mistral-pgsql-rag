@@ -7,6 +7,7 @@ using Mistral.Repositories;
 using Mistral.SDK;
 using Mistral.SDK.DTOs;
 using Mistral.Utils;
+using Pgvector;
 using Pgvector.Dapper;
 using System.Collections.ObjectModel;
 using System.Data;
@@ -72,7 +73,9 @@ namespace Mistral.Examples
                 if (!String.IsNullOrEmpty(question))
                 {
                     var questionEmbedding = (await CreateEmbeddings(client, new List<string> { question })).First();
-                    var questionVector = EmbeddingUtils.ConvertToVector(questionEmbedding.Embedding);
+                    float[] embedding = questionEmbedding.Embedding.Select(d => (float)d).ToArray();
+                    Vector questionVector = new Vector(embedding);
+
                     var matches = await embeddingsRepo.GetMatches(questionVector, 0.2F, 5);
                     Console.WriteLine($"Matches: {matches.Count()}");
 
