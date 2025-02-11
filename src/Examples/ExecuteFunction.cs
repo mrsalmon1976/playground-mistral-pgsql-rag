@@ -45,39 +45,19 @@ namespace Mistral.Examples
             while (true)
             {
 
-                Console.WriteLine("How old is the applicant? (Valid values 1 - 120)");
-                Console.Write(">> ");
-                string ageInput = Console.ReadLine() ?? String.Empty;
-                if (ageInput.ToLower() == "exit")
-                {
-                    return;
-                }
+                Console.WriteLine("Please describe the applicant.  Their age and gender are important - you can keep it brief.");
+                Console.WriteLine("\tExamples:");
+                Console.WriteLine("\t\tMy son is 15 years old");
+                Console.WriteLine("\t\tMy mother is 65 years old");
+                Console.WriteLine("\t\tMy infant daughter is wanting insurance");
+                Console.WriteLine("\t\tMy colleague is retiring next year as my company has mandatory retirement at 63.  She is wanting insurance.");
 
-                int.TryParse(ageInput, out int age);
-                if (age <= 0 || age > 120)
-                {
-                    ConsoleUtils.WriteLine("Invalid age", ConsoleColor.White, ConsoleColor.Red);
-                    continue;
-                }
-
-                Console.WriteLine("Is the applicant male or female (Valid values M/F)");
-                Console.Write(">> ");
-                string gender = (Console.ReadLine() ?? String.Empty).ToUpper();
-                if (gender == "EXIT")
-                {
-                    return;
-                }
-                if (gender != "M" && gender != "F")
-                {
-                    ConsoleUtils.WriteLine("Invalid gender", ConsoleColor.White, ConsoleColor.Red);
-                    continue;
-                }
-                gender = (gender == "M" ? "male" : "female");
-
+                Console.Write(">>");
+                var applicant = Console.ReadLine();
 
                 var messages = new List<ChatMessage>()
                 {
-                    new ChatMessage(ChatMessage.RoleEnum.User, $"The applicant is a {age} year old {gender} - are they eligible for insurance cover?  Please provide the reason for the decision.")
+                    new ChatMessage(ChatMessage.RoleEnum.User, $"The applicant is described as \"{applicant}\" - are they eligible for insurance cover?  Please provide the reason for the decision.")
                 };
                 var request = new ChatCompletionRequest(ModelDefinitions.MistralSmall, messages);
                 request.MaxTokens = 1024;
@@ -98,8 +78,17 @@ namespace Mistral.Examples
                     messages.Add(new ChatMessage(toolCall, resp));
                 }
 
-                var response2 = await client.Completions.GetCompletionAsync(request).ConfigureAwait(false);
-                ConsoleUtils.WriteLine(response2.Choices.First().Message.Content, ConsoleColor.Green);
+                if (response.ToolCalls.Count == 0)
+                {
+                    ConsoleUtils.WriteLine("No tool calls were made - perhaps try more detail.", ConsoleColor.Red);
+                }
+                else
+                {
+
+                    var response2 = await client.Completions.GetCompletionAsync(request).ConfigureAwait(false);
+                    ConsoleUtils.WriteLine(response2.Choices.First().Message.Content, ConsoleColor.Green);
+                }
+                Console.WriteLine("");
             }
 
         }

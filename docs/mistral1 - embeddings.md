@@ -1,21 +1,20 @@
-This post covers how to use [Mistral's](https://mistral.ai/technology/#models) large language models (LLMs) to create embeddings from you own documents using .NET.
+This blog is the first of three, where I decided to try out [Mistral.AI](https://mistral.ai). This article covers how to use Mistral's [large language models](https://mistral.ai/technology/#models)
+ (LLMs) to create embeddings from your own documents using .NET.
 
 # Technologies used
 
 - [Mistral.AI](https://mistral.ai/technology/#models) - offers local and online high quality LLMs 
-- [dotnet v8.0.12](https://dotnet.microsoft.com/en-us/download) - installed with command `sudo snap install dotnet-sdk --classic`
-- [PostgreSQL](http://postgresql.org/) - with vector extension 
-  - I used the [ankane/pgvector](https://hub.docker.com/r/ankane/pgvector) image for this proof of concept
-  - Consider [Supabase](https://supabase.com/) if you don't want to run your own database
+- [dotnet v8.0.12](https://dotnet.microsoft.com/en-us/download) 
+- [PostgreSQL](http://postgresql.org/) with vector extension - I used the [ankane/pgvector](https://hub.docker.com/r/ankane/pgvector) image in Docker Desktop for this proof of concept, but you can use [Supabase](https://supabase.com/) if you don't want to run your own database
 - [Dapper](https://github.com/DapperLib/Dapper)
-- [PgVector](https://github.com/pgvector/pgvector-dotnet) and Pgvector.Dapper - provides .NET support for working with vectors with PostgreSQL
-- A book called [Cricket](https://www.gutenberg.org/ebooks/67430) in text format from Project Gutenberg at https://www.gutenberg.org/ebooks/67430 - this book is large enough to cause complications with context size (we cannot retrieve embeddings for the entire book in one go)
+- [pgvector-dotnet](https://github.com/pgvector/pgvector-dotnet) - provides .NET support for working with vectors with PostgreSQL
+- A book (free of copyright) called [Cricket](https://www.gutenberg.org/ebooks/67430) in text format from Project Gutenberg at https://www.gutenberg.org/ebooks/67430 - this book is large enough to cause complications with context size (we cannot retrieve embeddings for the entire book in one go)
 
 # What are Embeddings?
 
-While this is relatively worthless information on its own, this is an important requirement for Retrieval-Augmented Generation (RAG) when working with LLMs.
+While this article is relatively worthless on its own, the use of embeddings is an important requirement for Retrieval-Augmented Generation (RAG) when working with LLMs.
 
-Embeddings are numerical representations of data used to encode words, sentences, documents, and mroe into a format that machine learning models can process.  Embeddings allow LLMs to quickly retrieve relevant information by comparing vector distances.
+Embeddings are numerical representations of data used to encode words, sentences, documents, and more into a format that machine learning models can process.  Embeddings allow LLMs to quickly retrieve relevant information by comparing vector distances.
 
 When engaging with an LLM like Mistral, you can ask it questions and it will answer you using the data on which it was trained.  However, if you want to apply your own data to the conversation, you need to supply context.  When your data set is small, you can just send the text of your entire document to intitate the conversation, but once you start needing larger documents as context this gets more difficult.
 
@@ -29,11 +28,13 @@ To start working, you will need to:
 
 1. Sign up with [Mistral](https://mistral.ai/) and create a developer account
 2. Create a .NET 8 console application, and add the `Mistral.SDK` nuget package to your solution
-3. Create an API key on the Mistral site, and add it to your app settings.  A key will look something like `xh53nppoL8uRmT...................`
+3. Create an API key on the Mistral site, and add it to your app settings.  A key will look something like `xh53nppoL8uRmT!!redacted!!`
 
 # Setting up PostgreSQL
 
-We want to store our vectors in a database, so we can query for similarities and add relevant embeddings to our context. Make sure you have an accessible instance of PostgreSQL running, and set up with your a name/password.  You will also need to ensure that the `pgvector` extension is installed on your database.
+We want to store our vectors in a database, so we can query for similarities and add relevant embeddings to our context. We also don't want to keep request embeddings for the same document repeatedly.  
+
+Make sure you have an accessible instance of PostgreSQL running, and set up with your name/password.  You will also need to ensure that the `pgvector` extension is installed on your database.
 
 First, create a table to store the embeddings.
 
@@ -44,10 +45,11 @@ CREATE TABLE embeddings (
 	content text,               -- text content of the embedding
 	embedding vector(1024)      -- the dimension of our embedding
 );
+
+CREATE EXTENSION vector;        -- enables the vector extension on your database
 ```
 
 Note that the `document_id` should really be a foreign key, but for purposes of the example it is just a text identifier that we will hard-code.
-
 
 # Using LangChain to split your text
 
@@ -79,9 +81,9 @@ private static List<string> SplitDocument(string documentPath, int chunkSize, in
 
 Now that we have chunks of text, we generate the embeddings for each chunk, and for this we use the Mistral Embeddings model via the API.  As mentioned before, because this is a very large document, we cannot create embeddings for the entire document at once - the model (`ModelDefinitions.MistralEmbed`) has a limit of just over 16,000 tokens.
 
-Strictly speaking we should be breaking the document into tokens and sending as few requests as possible, but we know the chunk size so we can take a fair guess (with some buffer) as to how many chunks we can do at once.
+Strictly speaking we should be breaking the document into tokens and sending as few requests as possible, but we know the chunk size so for the sake of reducing the complexity of the example, we can take a fair guess (with some buffer) as to how many chunks we can do at once.
 
-This is a fairly complex method that breaks the split documents up into batches, and generates embeddings per batch, finally sending all embeddings back as a single set of models:
+This is a fairly complex method that breaks the split documents up into batches, and generates embeddings per batch, finally sending all embeddings back as a single set of `EmbeddingDocument` models:
 
 ```csharp
 private static async Task<IEnumerable<EmbeddingDocument>> CreateEmbeddings(MistralClient client, List<string> input, int maxDocumentsPerBatch = 100)
@@ -132,7 +134,7 @@ internal class EmbeddingDocument
 
 # Saving embeddings to PostgreSQL
 
-Saving to the database using `Dapper` and the `PgVector` Dapper extension is now a piece of cake
+Saving to the database using `Dapper` and the `PgVector` Dapper extension is the easy part.
 
 1. Add pre-requisites to your solution: `Dapper`, `PgVector` and `PgVector.Dapper`
 
@@ -239,9 +241,9 @@ internal class EmbeddingComparison
 Now, you can use the content from the similar items to add context.  
 
 1. Retrieve matches from the database as per above
-2. Use the `Content` property of the matches to build context, for example
+2. Use the `Content` property of the matches returned from the database to build context, for example:
    ```csharp
    var requestContent = $"Document context: {concatenatedContent} - Question: {userQuestion}";
    ```
-   This would be used as your `User` `ChatMessage`, which will be covered in the next blog post.
+   This would be used as your *user* `ChatMessage`, which will be covered in the next blog post.
 
