@@ -5,4 +5,4 @@
 [Bb]in/
 [Oo]bj/
 .vs/
-/src/console/AppSecrets.json
+/src/AppSecrets.json
