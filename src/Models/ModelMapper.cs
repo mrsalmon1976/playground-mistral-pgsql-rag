@@ -7,7 +7,7 @@ namespace Mistral.Models
     {
         public DbEmbedding ConvertEmbeddingDocumentToDbEmbedding(EmbeddingDocument embeddingDocument)
         {
-            float[] embedding = EmbeddingUtils.ConvertToFloat(embeddingDocument.Embedding).ToArray();
+            float[] embedding = embeddingDocument.Embedding.Select(d => (float)d).ToArray();
 
             return new DbEmbedding()
             {
@@ -19,7 +19,7 @@ namespace Mistral.Models
 
         public EmbeddingDocument ConvertDbEmbeddingToEmbeddingDocument(DbEmbedding dbEmbedding)
         {
-            List<decimal> embedding = EmbeddingUtils.ConvertToDecimal(dbEmbedding.Embedding).ToList();
+            List<decimal> embedding = dbEmbedding.Embedding.ToArray().Select(d => (decimal)d).ToList();
 
             return new EmbeddingDocument()
             {
