@@ -247,3 +247,6 @@ Now, you can use the content from the similar items to add context.
    ```
    This would be used as your *user* `ChatMessage`, which will be covered in the next blog post.
 
+# Other
+
+Full example source code: https://github.com/mrsalmon1976/playground-mistral-pgsql-rag (See LocalVectorSearch example)
